@@ -11,55 +11,58 @@ namespace QueryString
             return string.Join("&", ToKeyValuePairs(obj, prefix).Select(kvp => $"{kvp.Key}={kvp.Value}"));
         }
 
-        private static IEnumerable<KeyValuePair<string, string>> ToKeyValuePairs(object obj, string prefix = "")
+        public static IEnumerable<KeyValuePair<string, string>> ToKeyValuePairs(object obj, string prefix = "")
         {
             var type = obj.GetType();
             var genericEnumerableInterface = type.GetInterfaces().FirstOrDefault(
                 i => i.IsGenericType &&
                      i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
             var isIterable = genericEnumerableInterface != null && !(obj is string);
-            if (isIterable)
-            {
-                var i = 0;
-                foreach (var item in (IEnumerable)obj)
-                {
-                    var itemType = item.GetType();
-                    if (!itemType.IsPrimitive && !(item is string))
-                    {
-                        var properties = itemType.GetProperties();
-                        foreach (var prop in properties)
-                        {
-                            var propValue = prop.GetValue(item);
-                            var subPrefix = string.IsNullOrEmpty(prefix)
-                                ? $"{i}[{prop.Name}]"
-                                : $"{prefix}[{i}][{prop.Name}]";
-                            foreach (var kvp in ToKeyValuePairs(propValue, subPrefix))
-                                yield return kvp;
-                        }
-                    }
-                    else
-                    {
-                        yield return new KeyValuePair<string, string>($"{prefix}[{i}]", $"{item}");
-                    }
+            
+            foreach (var kvp in isIterable ? ConvertEnumerable((IEnumerable)obj, prefix) : ConvertObject(obj, prefix))
+                yield return kvp;
+        }
 
-                    i++;
+        private static IEnumerable<KeyValuePair<string, string>> ConvertEnumerable(IEnumerable obj, string prefix)
+        {
+            var i = 0;
+            foreach (var item in obj)
+            {
+                var itemType = item.GetType();
+                if (!itemType.IsPrimitive && !(item is string))
+                {
+                    var pre = string.IsNullOrWhiteSpace(prefix)
+                        ? $"{i}"
+                        : $"{prefix}[{i}]";
+                    foreach (var prop in itemType.GetProperties())
+                    {
+                        var propValue = prop.GetValue(item);
+                        foreach (var kvp in ToKeyValuePairs(propValue, $"{pre}[{prop.Name}]"))
+                            yield return kvp;
+                    }
                 }
+                else
+                {
+                    yield return new KeyValuePair<string, string>($"{prefix}[{i}]", $"{item}");
+                }
+
+                i++;
             }
-            else if (type.IsPrimitive || type.IsEnum || obj is string)
-            {
+        }
+
+        private static IEnumerable<KeyValuePair<string, string>> ConvertObject(object obj, string prefix = "")
+        {
+            var type = obj.GetType();
+            if (type.IsPrimitive || type.IsEnum || obj is string)
                 yield return new KeyValuePair<string, string>(prefix, $"{obj}");
-            }
             else
-            {
-                var properties = type.GetProperties();
-                foreach (var prop in properties)
+                foreach (var prop in type.GetProperties())
                 {
                     var propValue = prop.GetValue(obj);
                     var subPrefix = string.IsNullOrEmpty(prefix) ? prop.Name : $"{prefix}.{prop.Name}";
                     foreach (var kvp in ToKeyValuePairs(propValue, subPrefix))
                         yield return kvp;
                 }
-            }
         }
     }
 }
