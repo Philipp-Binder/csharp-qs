@@ -60,7 +60,7 @@ namespace QueryString.Tests
                 new Person("Ste", 6),
             };
             string query = QS.Stringify(mother);
-            var expected = "Children[0][Name]=Bob&Children[0][Age]=5&Children[1][Name]=Ste&Children[1][Age]=6&Name=Angela&Age=32";
+            var expected = "Children[0].Name=Bob&Children[0].Age=5&Children[1].Name=Ste&Children[1].Age=6&Name=Angela&Age=32";
             query.Should().Be(expected);
         }
 
@@ -98,7 +98,7 @@ namespace QueryString.Tests
             rooms.Add(room);
             rooms.Add(room);
             string query = QS.Stringify(rooms);
-            var expected = "0[Snr]=1&0[Adt]=5&0[Chd]=2&0[ChdAges][0]=5&0[ChdAges][1]=6&1[Snr]=1&1[Adt]=5&1[Chd]=2&1[ChdAges][0]=5&1[ChdAges][1]=6";
+            var expected = "0.Snr=1&0.Adt=5&0.Chd=2&0.ChdAges[0]=5&0.ChdAges[1]=6&1.Snr=1&1.Adt=5&1.Chd=2&1.ChdAges[0]=5&1.ChdAges[1]=6";
             query.Should().Be(expected);
         }
 
@@ -119,7 +119,27 @@ namespace QueryString.Tests
             rooms.Add(room);
             rooms.Add(room);
             string query = QS.Stringify(rooms, "rooms");
-            var expected = "rooms[0][Snr]=1&rooms[0][Adt]=5&rooms[0][Chd]=2&rooms[0][ChdAges][0]=5&rooms[0][ChdAges][1]=6&rooms[1][Snr]=1&rooms[1][Adt]=5&rooms[1][Chd]=2&rooms[1][ChdAges][0]=5&rooms[1][ChdAges][1]=6";
+            var expected = "rooms[0].Snr=1&rooms[0].Adt=5&rooms[0].Chd=2&rooms[0].ChdAges[0]=5&rooms[0].ChdAges[1]=6&rooms[1].Snr=1&rooms[1].Adt=5&rooms[1].Chd=2&rooms[1].ChdAges[0]=5&rooms[1].ChdAges[1]=6";
+
+            query.Should().Be(expected);
+        }
+
+        [Trait("QS", "")]
+        [Trait("QS - Stringify", "Prefix")]
+        [Trait("QS - Stringify", "Array")]
+        [Trait("QS - Stringify", "NestedObjects")]
+        [Fact(DisplayName = "QS - Stringify Array With Nested Objects")]
+        public void Should_Stringify_Array_With_Nested_Objects()
+        {
+            var obj = new
+            {
+                Array = new[]
+                {
+                    new { NestedObject = new { Val = "innerValue" } }
+                }
+            };
+            string query = QS.Stringify(obj, "obj");
+            var expected = "obj.Array[0].NestedObject.Val=innerValue";
 
             query.Should().Be(expected);
         }

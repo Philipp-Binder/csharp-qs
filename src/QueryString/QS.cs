@@ -25,28 +25,24 @@ namespace QueryString
 
         private static IEnumerable<KeyValuePair<string, string>> ConvertEnumerable(IEnumerable obj, string prefix)
         {
-            var i = 0;
+            var index = 0;
             foreach (var item in obj)
             {
                 var itemType = item.GetType();
                 if (!itemType.IsPrimitive && !(item is string))
                 {
                     var pre = string.IsNullOrWhiteSpace(prefix)
-                        ? $"{i}"
-                        : $"{prefix}[{i}]";
-                    foreach (var prop in itemType.GetProperties())
-                    {
-                        var propValue = prop.GetValue(item);
-                        foreach (var kvp in ToKeyValuePairs(propValue, $"{pre}[{prop.Name}]"))
-                            yield return kvp;
-                    }
+                        ? $"{index}"
+                        : $"{prefix}[{index}]";
+                    foreach (var kvp in ConvertObject(item, pre))
+                        yield return kvp;
                 }
                 else
                 {
-                    yield return new KeyValuePair<string, string>($"{prefix}[{i}]", $"{item}");
+                    yield return new KeyValuePair<string, string>($"{prefix}[{index}]", $"{item}");
                 }
 
-                i++;
+                index++;
             }
         }
 
